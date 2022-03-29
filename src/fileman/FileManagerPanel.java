@@ -23,24 +23,33 @@ public class FileManagerPanel extends JPanel {
     private static final String SYSTEM_TEMP_DIR = "/tmp";
     private final FileSystemView fileSystemView = FileSystemView.getFileSystemView();
 
-    private final JTable table;
-    private final JTree tree;
+    private JTable table;
+    private JTree tree;
     private FileTableModel model;
+    private JScrollPane treeView;
+    private JScrollPane tableScroll;
 
     private final int rowIconPadding = 6;
 
-    public FileManagerPanel(String topDir) {
+    public FileManagerPanel(String topDir, boolean lazy) {
         super(new GridLayout(1,0));
 
-        DefaultMutableTreeNode top = createFilesystemNodes (Paths.get(topDir));
-
         //Create a tree that allows one selection at a time
-        tree = new JTree(top);
-        tree.getSelectionModel().setSelectionMode(TreeSelectionModel.SINGLE_TREE_SELECTION);
+        //tree = new JTree(top);
+
+        if (lazy) {
+            DefaultMutableTreeNode top = createFilesystemNodesLazy(Paths.get(topDir));
+            tree = new JTree(top);
+            tree.addTreeWillExpandListener(new CustomTreeExpansionListener());
+            treeView = new JScrollPane(tree);
+        } else {
+            DefaultMutableTreeNode top = createFilesystemNodesEager(Paths.get(topDir));
+            tree = new JTree(top);
+            treeView = new JScrollPane(tree);
+        }
         tree.addTreeSelectionListener(new CustomTreeSelectionListener());
-        tree.addTreeWillExpandListener(new CustomTreeExpansionListener());
         tree.setCellRenderer(new FileTreeCellRenderer());
-        JScrollPane treeView = new JScrollPane(tree);
+        tree.getSelectionModel().setSelectionMode(TreeSelectionModel.SINGLE_TREE_SELECTION);
 
         //Create table that lists all files under selected directory
         table = new JTable();
@@ -51,7 +60,7 @@ public class FileManagerPanel extends JPanel {
         table.setRowSelectionAllowed(true);
         table.setAutoCreateRowSorter(true);
         table.setShowVerticalLines(false);
-        JScrollPane tableScroll = new JScrollPane(table);
+        tableScroll = new JScrollPane(table);
 
         //Add the scroll panes to a split pane.
         JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT);
@@ -61,6 +70,30 @@ public class FileManagerPanel extends JPanel {
 
         //Add the split pane to this panel.
         add(splitPane);
+    }
+
+    private DefaultMutableTreeNode createFilesystemNodesEager(Path path) {
+        return loadNodes(path);
+    }
+
+    private DefaultMutableTreeNode loadNodes(Path path) {
+        DefaultMutableTreeNode top = new DefaultMutableTreeNode(path.toFile());
+        DefaultMutableTreeNode node = null;
+
+        File[] files = fileSystemView.getFiles(path.toFile(), true);
+        Arrays.sort(files);
+        for (File file : files) {
+            if(file.isDirectory()) {
+                if (containsDirs(file.toPath())) {
+                    node = loadNodes(file.toPath());
+                    top.add(node);
+                } else {
+                    node = new DefaultMutableTreeNode(file);
+                    top.add(node);
+                }
+            }
+        }
+        return top;
     }
 
     /**
@@ -155,7 +188,7 @@ public class FileManagerPanel extends JPanel {
         public void valueChanged(TreeSelectionEvent e) {
             DefaultMutableTreeNode node = (DefaultMutableTreeNode) e.getPath().getLastPathComponent();
             File file = (File) node.getUserObject();
-            System.out.println(file.getName());
+            System.out.println(file.getPath());
             showChildren(node);
         }
     }
@@ -180,7 +213,7 @@ public class FileManagerPanel extends JPanel {
         return false;
     }
 
-    private DefaultMutableTreeNode createFilesystemNodes(Path path) {
+    private DefaultMutableTreeNode createFilesystemNodesLazy(Path path) {
         DefaultMutableTreeNode top = new DefaultMutableTreeNode(path.toFile());
         DefaultMutableTreeNode node = null;
 
@@ -205,7 +238,15 @@ public class FileManagerPanel extends JPanel {
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
         //Add content to the window.
-        frame.add(new FileManagerPanel(System.getProperty("user.home")));
+        //String homeDir = System.getProperty("user.home");
+        //frame.add(new FileManagerPanel(homeDir, true));
+
+        try {
+            String projectDir = new File(".").getCanonicalPath();
+            frame.add(new FileManagerPanel(projectDir, false));
+        } catch (IOException ex) {
+            System.err.println("Error: No such path");
+        }
 
         //Set size
         frame.setPreferredSize(new Dimension(1000, 1000));
