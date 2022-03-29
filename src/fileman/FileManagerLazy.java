@@ -19,7 +19,7 @@ import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.List;
 
-public class FileManagerPanel extends JPanel {
+public class FileManagerLazy extends JPanel {
     private static final String SYSTEM_TEMP_DIR = "/tmp";
     private final FileSystemView fileSystemView = FileSystemView.getFileSystemView();
 
@@ -31,25 +31,17 @@ public class FileManagerPanel extends JPanel {
 
     private final int rowIconPadding = 6;
 
-    public FileManagerPanel(String topDir, boolean lazy) {
+    public FileManagerLazy(String topDir) {
         super(new GridLayout(1,0));
 
         //Create a tree that allows one selection at a time
-        //tree = new JTree(top);
-
-        if (lazy) {
-            DefaultMutableTreeNode top = createFilesystemNodesLazy(Paths.get(topDir));
-            tree = new JTree(top);
-            tree.addTreeWillExpandListener(new CustomTreeExpansionListener());
-            treeView = new JScrollPane(tree);
-        } else {
-            DefaultMutableTreeNode top = createFilesystemNodesEager(Paths.get(topDir));
-            tree = new JTree(top);
-            treeView = new JScrollPane(tree);
-        }
+        DefaultMutableTreeNode top = createFilesystemNodesLazy(Paths.get(topDir));
+        tree = new JTree(top);
+        tree.addTreeWillExpandListener(new CustomTreeExpansionListener());
         tree.addTreeSelectionListener(new CustomTreeSelectionListener());
         tree.setCellRenderer(new FileTreeCellRenderer());
         tree.getSelectionModel().setSelectionMode(TreeSelectionModel.SINGLE_TREE_SELECTION);
+        treeView = new JScrollPane(tree);
 
         //Create table that lists all files under selected directory
         table = new JTable();
@@ -238,15 +230,8 @@ public class FileManagerPanel extends JPanel {
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
         //Add content to the window.
-        //String homeDir = System.getProperty("user.home");
-        //frame.add(new FileManagerPanel(homeDir, true));
-
-        try {
-            String projectDir = new File(".").getCanonicalPath();
-            frame.add(new FileManagerPanel(projectDir, false));
-        } catch (IOException ex) {
-            System.err.println("Error: No such path");
-        }
+        String homeDir = System.getProperty("user.home");
+        frame.add(new FileManagerLazy(homeDir));
 
         //Set size
         frame.setPreferredSize(new Dimension(1000, 1000));
