@@ -2,6 +2,8 @@
 
 FileMan is a simple portable file manager/browser written in pure java/swing. The project is a reworked version of file browser found on stackexchange. The difference/update is that we don't have to mark folder in file tree to know if it has any children (if it contains any files/folders). Some features have been removed to make code simpler.
 
+![fileman screen](/images/fileman.png)
+
 There are actually two versions:
 - FileManagerEager
 - FileManagerLazy
