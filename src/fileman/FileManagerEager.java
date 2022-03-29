@@ -17,6 +17,9 @@ import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.List;
 
+//TODO
+//1 Create ProgressBar that helps track how many files have been loaded
+//2 Add method to FileManager Eager that expands all nodes
 public class FileManagerEager extends JPanel {
     private final FileSystemView fileSystemView = FileSystemView.getFileSystemView();
 
